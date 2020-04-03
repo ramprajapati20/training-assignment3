@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- @author- Ram -->
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="1730f52a-a704-460c-9ac6-04ada1159014" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="10d9469e-5740-440d-bcff-c0e293db1c72" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="root" database="TRAINING" />
+	</db:config>
+	<db:config name="Database_Config1" doc:name="Database Config" doc:id="2262c48d-ca26-4cf0-b79e-2dafa2c3b982" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="root" database="TRAINING" />
+	</db:config>
+	<flow name="training-assignment3Flow" doc:id="33e1bcce-c2a8-47e9-8e55-b57fba22951f" >
+		<http:listener doc:name="Listener" doc:id="59fccf93-c496-423b-ab34-a03782cf8e2a" config-ref="HTTP_Listener_config" path="/api/employee" allowedMethods="GET"/>
+		<set-variable value="#[attributes.queryParams.empno]" doc:name="Set Variable" doc:id="8c8d1969-4dab-4a7d-9125-80e89cb355be" variableName="empnoVar"/>
+		<choice doc:name="Choice" doc:id="8cfa6aac-8e88-4bad-bd93-3b79a9a34302" >
+			<when expression="#[vars.empnoVar !='']">
+				<db:select doc:name="Select" doc:id="91768b2f-1846-441b-9188-51f9d653f56d" config-ref="Database_Config">
+					<db:sql >SELECT * FROM TRAINING.EMP WHERE EMPNO=:empno</db:sql>
+					<db:input-parameters ><![CDATA[#[{
+	empno:vars.empnoVar
+}]]]></db:input-parameters>
+				</db:select>
+			</when>
+			<otherwise >
+				<db:select doc:id="4e95bc51-fd3c-4faf-a229-bff1a5be7c07" config-ref="Database_Config">
+			<db:sql>SELECT * FROM TRAINING.EMP;</db:sql>
+		</db:select>
+			</otherwise>
+		</choice>
+		<ee:transform doc:name="Transform Message" doc:id="1a112f24-aa05-4cb8-9ee7-5d8291a10821" >
+			<ee:message >
+				<ee:set-payload resource="employee-select-data.dwl" />
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="060f22b5-b259-4eb2-b9cc-d2f9695f615b" />
+	</flow>
+	<flow name="training-assignment3Flow1" doc:id="f99d8f28-30dc-433d-a4ba-16983dfc6b7e" >
+		<http:listener doc:name="Listener" doc:id="bcc327c2-421d-4608-93af-4eff1313c4d0" config-ref="HTTP_Listener_config" path="/api/employee" allowedMethods="POST"/>
+		<db:insert doc:name="Insert" doc:id="36e4d250-beba-4af5-aa74-d83e424a96f9" config-ref="Database_Config">
+			<db:sql >INSERT INTO TRAINING.EMP(EMPNO,ENAME,JOB,MGR,HIREDATE,SAL,COMM,DEPTNO) VALUES (:EMPNO, :ENAME, :JOB, :MGR, :HIREDATE, :SAL, :COMM, :DEPTNO)</db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	ENAME:payload.ENAME,
+	JOB:payload.JOB,
+	MGR:payload.MGR,
+	HIREDATE:payload.HIREDATE,
+	SAL:payload.SAL,
+	COMM:payload.COMM,
+	EMPNO:payload.EMPNO,
+	DEPTNO:20
+}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="41c37090-df19-4bdf-8911-c41dde184475" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message:"Data Save Successfully !!!"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="523df83d-fac8-47e7-bb90-511575515928" />
+	</flow>
+	<flow name="training-assignment3Flow2" doc:id="d333b882-631e-4ebd-a1e9-d74a96c70980" >
+		<http:listener doc:name="Listener" doc:id="4551a100-8fc5-45bf-9014-5f37011c9da6" config-ref="HTTP_Listener_config" path="/api/employee" allowedMethods="PATCH"/>
+		<set-variable value="#[attributes.queryParams.EMPNO]" doc:name="Set Variable" doc:id="2c4a5425-1b71-4e28-8913-4d1c56ba42af" variableName="empVar"/>
+		<db:update doc:name="Update" doc:id="e601051e-c212-4b65-9b48-a9c9fecb7499" config-ref="Database_Config">
+			<db:sql >UPDATE TRAINING.EMP SET ENAME =:ENAME AND JOB =:JOB AND MGR =:MGR AND HIREDATE =:HIREDATE AND SAL =:SAL AND COMM =:COMM WHERE EMPNO =:EMPNO;
+</db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	ENAME:payload.ENAME,
+	JOB:payload.JOB,
+	MGR:payload.MGR,
+	HIREDATE:payload.HIREDATE,
+	SAL:payload.SAL,
+	COMM:payload.COMM,
+	EMPNO:vars.empVar
+}]]]></db:input-parameters>
+		</db:update>
+		<ee:transform doc:name="Transform Message" doc:id="ca881b49-d319-49c7-ab3f-eb4f3fe72cb8" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message:"Data Updated Successfully !!!"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="cf7c3105-8065-4394-b712-f0ce2446c5dd" />
+	</flow>
+	<flow name="training-assignment3Flow3" doc:id="6dafc49d-d64c-48ef-8de7-53ab09041ba4" >
+		<http:listener doc:name="Listener" doc:id="cf6d9e15-817f-4a56-a1bb-4ddca7a79b32" config-ref="HTTP_Listener_config" path="/api/employee" allowedMethods="DELETE"/>
+		<set-variable value="#[attributes.queryParams.EMPNO]" doc:name="Set Variable" doc:id="cd013ab7-87ec-4758-b3a1-ff9b6b4a8c0c" variableName="EMPNO"/>
+		<db:delete doc:name="Delete" doc:id="edda5438-db41-4e91-8b68-44dbce0069d9" config-ref="Database_Config">
+			<db:sql >DELETE FROM TRAINING.EMP WHERE EMPNO=:EMPNO</db:sql>
+			<db:input-parameters ><![CDATA[#[{
+ EMPNO:vars.EMPNO
+}]]]></db:input-parameters>
+		</db:delete>
+		<ee:transform doc:name="Transform Message" doc:id="be2ec788-c040-4305-8da6-a0e93375a105" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	message:"Data has been deleted successfully !!!"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="0607e398-a658-4811-be0e-50a11e881ffe" />
+	</flow>
+</mule>
